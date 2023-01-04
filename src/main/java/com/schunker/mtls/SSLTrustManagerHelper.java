@@ -44,13 +44,24 @@ public class SSLTrustManagerHelper {
 
     public void setTrustStorePath(String trustStorePath) {
         if (this.isBlank(trustStorePath)) {
-            throw new IllegalArgumentException("Truststore must not be null or empty");
+            throw new IllegalArgumentException("Truststore path must not be null or empty");
         }
         this.trustStore = trustStorePath;
     }
 
-    public String getTrustStore() {
+    public String getTrustStorePath() {
         return this.trustStore;
+    }
+
+    public void setTrustStorePassword(String trustStorePassword) {
+        if (this.isBlank(trustStorePassword)) {
+            throw new IllegalArgumentException("Truststore password must not be null or empty");
+        }
+        this.trustStorePassword = trustStorePassword;
+    }
+
+    public String getTrustStorePassword() {
+        return this.trustStorePassword;
     }
 
     public SSLContext getSSLContext() throws Exception {

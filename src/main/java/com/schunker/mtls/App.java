@@ -5,14 +5,18 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
+import java.net.URLConnection;
+import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 
 import com.schunker.java.*;
-
 
 public class App {
     public static void main(String[] args) {
@@ -38,36 +42,57 @@ public class App {
     private void testConnection() {
         TextBox urlTextBox = new TextBox("URL", TextBoxInputType.TEXT);
         String urlString = urlTextBox.show();
+
         if (!urlString.startsWith("https://")) {
             System.out.println("URL must start with 'https://'");
             return;
         }
+
         System.out.println("URL: " + urlString);
 
         TextBox keystorePathTextBox = new TextBox("Keystore path", TextBoxInputType.TEXT);
         String keystorePath = keystorePathTextBox.show();
-        System.out.println("Keystore path: " + keystorePath);
+        System.out.println("Keystore path: [" + keystorePath + "]");
 
         TextBox keystorePasswordTextBox = new TextBox("Keystore password", TextBoxInputType.TEXT);
         String keystorePassword = keystorePasswordTextBox.show();
-        System.out.println("Keystore password: " + keystorePassword);
+        System.out.println("Keystore password: [" + keystorePassword + "]");
+
+        TextBox truststorePathTextBox = new TextBox("Truststore path", TextBoxInputType.TEXT);
+        String truststorePath = truststorePathTextBox.show();
+        System.out.println("Truststore path: [" + truststorePath + "]");
+
+        TextBox truststorePasswordTextBox = new TextBox("Truststore password", TextBoxInputType.TEXT);
+        String truststorePassword = truststorePasswordTextBox.show();
+        System.out.println("Truststore password: [" + truststorePassword + "]");
 
         SSLTrustManagerHelper trustManagerHelper = new SSLTrustManagerHelper(keystorePath, keystorePassword);
+
+        if (!truststorePath.isEmpty()) {
+            trustManagerHelper.setTrustStorePath(truststorePath);
+        }
+        if (!truststorePassword.isEmpty()) {
+            trustManagerHelper.setTrustStorePassword(truststorePassword);
+        }
+
         SSLContext sslContext = null;
 
         try {
             sslContext = trustManagerHelper.getSSLContext();
         } catch (Exception ex) {
-            System.err.println(ex);
+            System.err.println(ex.getMessage());
+            ex.printStackTrace();
             System.exit(1);
         }
 
         URL url = null;
-        
+
         try {
             url = new URL(urlString);
         } catch (MalformedURLException ex) {
             System.err.println("Malformed URL: " + urlString);
+            System.err.println(ex.getMessage());
+            ex.printStackTrace();
             System.exit(2);
         }
         
@@ -81,54 +106,107 @@ public class App {
             proxy = Proxy.NO_PROXY;
         }
 
-        HttpsURLConnection connection = null;
+        HttpsURLConnection urlConnection = null;
 
         try {
-            connection = (HttpsURLConnection) url.openConnection(proxy);
+            urlConnection = (HttpsURLConnection) url.openConnection(proxy);
         } catch (Exception ex) {
-            System.err.println("Exception for opening connection");
+            System.err.println("Exception for opening (creating) connection");
+            System.err.println(ex.getMessage());
+            ex.printStackTrace();
             System.exit(3);
         }
         
-        connection.setSSLSocketFactory(sslContext.getSocketFactory());
-        connection.setConnectTimeout(10 * 1000);
-        this.setDefaultRequestParameters(connection);
+        urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+        urlConnection.setConnectTimeout(10 * 1000);
+        this.setDefaultRequestParameters(urlConnection);
 
-        int responseCode = 0;
+        /*
+        List<Field> fields = ReflectionHelper.getDeclaredFields(urlConnection.getClass());
+        for (Field field : fields) {
+            System.out.println("URLConnection field: " + field.toString());
+        } */
+
+        //boolean isConnected = this.isConnectionConnected(urlConnection);
+        //System.out.println("HttpsURLConnection.connected: " + isConnected);
 
         try {
-            responseCode = connection.getResponseCode();    
+            urlConnection.connect();
         } catch (Exception ex) {
+            System.err.println("Exception for connecting connection");
             System.err.println(ex.getMessage());
             ex.printStackTrace();
             System.exit(4);
         }
-        
-        System.out.println("Response code: " + Integer.toString(responseCode));
 
-        Field connectedField = null;
-        boolean isConnectionConnected = false;
+        //isConnected = this.isConnectionConnected(urlConnection);
+        //System.out.println("HttpsURLConnection.connected: " + isConnected);
+
+        int responseCode = 0;
 
         try {
-            connectedField = connection.getClass().getField("connected");
-            connectedField.setAccessible(true);
-            isConnectionConnected = connectedField.getBoolean(connection);
+            responseCode = urlConnection.getResponseCode();
         } catch (Exception ex) {
             System.err.println(ex.getMessage());
+            ex.printStackTrace();
             System.exit(5);
         }
 
+        System.out.println("Response code: " + Integer.toString(responseCode));
+
         String content = null;
 
-        if (!isConnectionConnected) {
-            try {
-                content = connection.getContent().toString();    
-            } catch (Exception ex) {
-                System.err.println(ex.getMessage());
-                System.exit(6);
-            }
+        try {
+            content = urlConnection.getContent().toString();
+        } catch (IOException ex) {
+            System.err.println(ex.getMessage());
+            ex.printStackTrace();
+            System.exit(6);
         }
+
         System.out.println("Content: " + content);
+
+        /*
+        String responseMessage = null;
+
+        try {
+            responseMessage = urlConnection.getResponseMessage();
+        } catch (IOException ex) {
+            System.err.println(ex.getMessage());
+            System.exit(7);
+        }
+
+        System.out.println("Response message: " + responseMessage);
+        */
+
+        String responseBody = "";
+        BufferedReader bufferedReader = null;
+
+        try {
+            if (responseCode >= 100 && responseCode <= 399) {
+                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+            } else {
+                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getErrorStream()));
+            }
+        } catch (Exception ex) {
+            System.err.println(ex.getMessage());
+            ex.printStackTrace();
+            System.exit(7);
+        }
+
+        String responseBodyLine = "";
+
+        try {
+            while ((responseBodyLine = bufferedReader.readLine()) != null) {
+                responseBody += responseBodyLine;
+            }
+        } catch (Exception ex) {
+            System.err.println(ex.getMessage());
+            ex.printStackTrace();
+            System.exit(7);
+        }
+
+        System.out.println("Response body: " + responseBody);
     }
 
     private void editKeystore() {
@@ -143,5 +221,23 @@ public class App {
 		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#no-store_2
 		connection.setRequestProperty("Cache-Control", "no-store");
 		return;
+    }
+
+    private boolean isConnectionConnected(URLConnection urlConnection) {
+        System.out.println("isConnectionConnected");
+        Field connectedField = null;
+        boolean isConnected = false;
+
+        try {
+            //connectedField = urlConnection.getClass().getDeclaredField("connected");
+            connectedField = ReflectionHelper.getDeclaredField(urlConnection.getClass(), "connected");
+            connectedField.setAccessible(true);
+            isConnected = connectedField.getBoolean(urlConnection);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.err.println("Exception message: " + ex.getMessage());
+            //System.exit(1);
+        }
+        return isConnected;
     }
 }
