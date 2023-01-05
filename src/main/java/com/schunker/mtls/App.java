@@ -1,22 +1,19 @@
 package com.schunker.mtls;
 
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
+import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.Proxy;
-import java.net.URL;
+import java.net.InetSocketAddress;
 import java.net.URLConnection;
-import java.util.List;
-
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+
 import java.lang.reflect.Field;
 
 import com.schunker.java.*;
+import com.schunker.mtls.net.HttpsURLConnectionWrapper;
 
 public class App {
     public static void main(String[] args) {
@@ -36,7 +33,6 @@ public class App {
         } else if (inputOption == 2) {
             this.editKeystore();
         }
-        
     }
 
     private void testConnection() {
@@ -106,20 +102,24 @@ public class App {
             proxy = Proxy.NO_PROXY;
         }
 
-        HttpsURLConnection urlConnection = null;
+        //HttpsURLConnection urlConnection = null;
+        HttpsURLConnectionWrapper urlConnectionWrapper = null;
 
         try {
-            urlConnection = (HttpsURLConnection) url.openConnection(proxy);
+            //urlConnection = (HttpsURLConnection) url.openConnection(proxy);
+            //urlConnection.setRequestMethod("GET");
+            urlConnectionWrapper = new HttpsURLConnectionWrapper(url, proxy);
+            urlConnectionWrapper.urlConnection.setRequestMethod("GET");
         } catch (Exception ex) {
             System.err.println("Exception for opening (creating) connection");
             System.err.println(ex.getMessage());
             ex.printStackTrace();
             System.exit(3);
         }
-        
-        urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-        urlConnection.setConnectTimeout(10 * 1000);
-        this.setDefaultRequestParameters(urlConnection);
+
+        urlConnectionWrapper.urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+        urlConnectionWrapper.urlConnection.setConnectTimeout(10 * 1000);
+        urlConnectionWrapper.setDefaultRequestParameters();
 
         /*
         List<Field> fields = ReflectionHelper.getDeclaredFields(urlConnection.getClass());
@@ -131,7 +131,12 @@ public class App {
         //System.out.println("HttpsURLConnection.connected: " + isConnected);
 
         try {
-            urlConnection.connect();
+            urlConnectionWrapper.urlConnection.connect();
+        } catch (SSLHandshakeException sslex) {
+            System.err.println("Exception for connecting via mTLS");
+            System.err.println(sslex.getMessage());
+            sslex.printStackTrace();
+            System.exit(4);
         } catch (Exception ex) {
             System.err.println("Exception for connecting connection");
             System.err.println(ex.getMessage());
@@ -145,7 +150,7 @@ public class App {
         int responseCode = 0;
 
         try {
-            responseCode = urlConnection.getResponseCode();
+            responseCode = urlConnectionWrapper.urlConnection.getResponseCode();
         } catch (Exception ex) {
             System.err.println(ex.getMessage());
             ex.printStackTrace();
@@ -157,7 +162,8 @@ public class App {
         String content = null;
 
         try {
-            content = urlConnection.getContent().toString();
+            //content = urlConnectionWrapper.urlConnection.getContent().toString();
+            content = urlConnectionWrapper.getResponseContent();
         } catch (IOException ex) {
             System.err.println(ex.getMessage());
             ex.printStackTrace();
@@ -179,48 +185,12 @@ public class App {
         System.out.println("Response message: " + responseMessage);
         */
 
-        String responseBody = "";
-        BufferedReader bufferedReader = null;
-
-        try {
-            if (responseCode >= 100 && responseCode <= 399) {
-                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-            } else {
-                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getErrorStream()));
-            }
-        } catch (Exception ex) {
-            System.err.println(ex.getMessage());
-            ex.printStackTrace();
-            System.exit(7);
-        }
-
-        String responseBodyLine = "";
-
-        try {
-            while ((responseBodyLine = bufferedReader.readLine()) != null) {
-                responseBody += responseBodyLine;
-            }
-        } catch (Exception ex) {
-            System.err.println(ex.getMessage());
-            ex.printStackTrace();
-            System.exit(7);
-        }
-
+        String responseBody = urlConnectionWrapper.getResponseBody();
         System.out.println("Response body: " + responseBody);
     }
 
     private void editKeystore() {
         System.out.println("Option not yet available");
-    }
-    
-    private void setDefaultRequestParameters(HttpURLConnection connection) {
-        System.out.println("setDefaultRequestProperties");
-		// The no-store request directive allows a client to request that caches
-		// refrain from storing the request and corresponding response
-		// even if the origin server's response could be stored.
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#no-store_2
-		connection.setRequestProperty("Cache-Control", "no-store");
-		return;
     }
 
     private boolean isConnectionConnected(URLConnection urlConnection) {
