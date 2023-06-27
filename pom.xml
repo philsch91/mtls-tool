@@ -66,6 +66,13 @@
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>
+          <configuration>
+            <archive>
+              <manifest>
+                <mainClass>com.schunker.mtls.App</mainClass>
+              </manifest>
+            </archive>
+          </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
@@ -110,7 +117,53 @@
             </execution>
           </executions>
         </plugin>
+        <!-- not working
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        -->
       </plugins>
     </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.0</version>
+        <configuration>
+          <!-- put your configurations here -->
+          <!--<finalName>${project.artifactId}-${project.version}-shaded</finalName>-->
+          <shadedArtifactAttached>true</shadedArtifactAttached>
+          <!--
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <mainClass>com.schunker.mtls.App</mainClass>
+            </transformer>
+          </transformers>
+          -->
+          <artifactSet>
+            <includes>
+              <include>com.schunker.java:JavaConsoleKit</include>
+            </includes>
+          </artifactSet>
+          <!--
+          <filters>
+            <filter>
+            </filter>
+          </filters>
+          -->
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 </project>
