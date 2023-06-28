@@ -52,6 +52,7 @@ mvn test
 ```
 java -cp "C:\\dev\\philipp-schunker\\mtls-tool\\target\\classes;C:\\dev\\philipp-schunker\\JavaConsoleKit\\target\\classes" com.schunker.mtls.App
 java -jar target/mtls-tool-1.0-SNAPSHOT-shaded.jar
+java -Dhttps.proxyHost=proxy.hostname.com -Dhttps.proxyPort=8080 -Dhttp.nonProxyHosts="*.subd.tld.com|*.tld.com" -Djava.util.logging.config.file=src/main/resources/logging.properties -Djavax.net.debug=all -jar target/mtls-tool-1.0-SNAPSHOT-shaded.jar
 ```
 
 ## Package
