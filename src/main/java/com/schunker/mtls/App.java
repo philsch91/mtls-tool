@@ -121,6 +121,12 @@ public class App {
         urlConnectionWrapper.urlConnection.setConnectTimeout(10 * 1000);
         urlConnectionWrapper.setDefaultRequestParameters();
 
+        if (System.getProperty("ssl.SocketFactory.provider") == "WireLogSSLSocketFactory") {
+            System.out.println("Use WireLogSSLSocketFactory");
+            WireLogSSLSocketFactory socketFactory = new WireLogSSLSocketFactory(sslContext.getSocketFactory());
+            urlConnectionWrapper.urlConnection.setSSLSocketFactory(socketFactory);
+        }
+
         /*
         List<Field> fields = ReflectionHelper.getDeclaredFields(urlConnection.getClass());
         for (Field field : fields) {
