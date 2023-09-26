@@ -15,6 +15,10 @@ import javax.net.ssl.SSLSocketFactory;
 
 public class WireLogSSLSocketFactory extends SSLSocketFactory {
 
+    private static final Logger logger = Logger.getLogger(WireLogSSLSocketFactory.class.toString());
+    private static final String CHARSET = "ISO-8859-1";
+    private StringBuffer sb = new StringBuffer();
+
     private SSLSocketFactory delegate;
 
     public WireLogSSLSocketFactory(SSLSocketFactory sf) {
@@ -33,36 +37,64 @@ public class WireLogSSLSocketFactory extends SSLSocketFactory {
 
     @Override
     public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-        return new WireLogSocket((SSLSocket)this.delegate.createSocket(s, host, port, autoClose));
+        //sb.append("createSocket(Socket s, String host, int port, boolean autoClose)");
+        sb.append(String.format("createSocket(%s, %s, %d, %b) ", s, host, port, autoClose));
+        logger.info("\n" + sb.toString());
+
+        if (autoClose) {
+            autoClose = !autoClose;
+        }
+
+        sb.append(String.format("s.isConnected(): %b ", s.isConnected()));
+        logger.info("\n" + sb.toString());
+
+        Socket socket = (SSLSocket)this.delegate.createSocket(s, host, port, autoClose);
+
+        // java.net.SocketException: Socket is not connected // solved
+        // java.io.IOException: Socket Closed
+        socket = new WireLogSSLSocket((SSLSocket)socket);
+
+        sb.append(String.format("socket: %s, socket.isConnected(): %b ", socket, socket.isConnected()));
+        logger.info("\n" + sb.toString());
+
+        return socket;
     }
 
     @Override
     public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-        return new WireLogSocket((SSLSocket)this.delegate.createSocket(host, port));
+        sb.append("createSocket(Socket s, int port)");
+        logger.info("\n" + sb.toString());
+        return new WireLogSSLSocket((SSLSocket)this.delegate.createSocket(host, port));
     }
 
     @Override
     public Socket createSocket(String host, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
-        return new WireLogSocket((SSLSocket)this.delegate.createSocket(host, port, localHost, localPort));
+        sb.append("createSocket(String host, int port, InetAddress localHost, int localPort)");
+        logger.info("\n" + sb.toString());
+        return new WireLogSSLSocket((SSLSocket)this.delegate.createSocket(host, port, localHost, localPort));
     }
 
     @Override
     public Socket createSocket(InetAddress host, int port) throws IOException {
-        return new WireLogSocket((SSLSocket)this.delegate.createSocket(host, port));
+        sb.append("createSocket(InetAddress host, int port)");
+        logger.info("\n" + sb.toString());
+        return new WireLogSSLSocket((SSLSocket)this.delegate.createSocket(host, port));
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)
             throws IOException {
-        return new WireLogSocket((SSLSocket)this.delegate.createSocket(address, port, localAddress, localPort));
+        sb.append("createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)");
+        logger.info("\n" + sb.toString());
+        return new WireLogSSLSocket((SSLSocket)this.delegate.createSocket(address, port, localAddress, localPort));
     }
 
-    private static class WireLogSocket extends SSLSocket {
+    private static class WireLogSSLSocket extends SSLSocket {
 
         private SSLSocket delegate;
 
-        public WireLogSocket(SSLSocket socket) {
+        public WireLogSSLSocket(SSLSocket socket) {
             this.delegate = socket;
         }
 
@@ -160,8 +192,18 @@ public class WireLogSSLSocketFactory extends SSLSocketFactory {
             return this.delegate.getEnableSessionCreation();
         }
 
-        private static  class LoggingOutputStream extends FilterOutputStream {
-            private static final Logger logger = Logger.getLogger(WireLogSocket.LoggingOutputStream.class.toString());
+        @Override
+        public boolean isConnected() {
+            return this.delegate.isConnected();
+        }
+
+        @Override
+        public String toString() {
+            return this.delegate.toString();
+        }
+
+        private static class LoggingOutputStream extends FilterOutputStream {
+            private static final Logger logger = Logger.getLogger(WireLogSSLSocket.LoggingOutputStream.class.toString());
             private static final String CHARSET = "ISO-8859-1";
             private StringBuffer sb = new StringBuffer();
 
@@ -172,13 +214,13 @@ public class WireLogSSLSocketFactory extends SSLSocketFactory {
             public void write(byte[] b, int off, int len) throws IOException {
                 sb.append(new String(b, off, len, CHARSET));
                 logger.info("\n" + sb.toString());
-                out.write(b, off, len);
+                this.out.write(b, off, len);
             }
 
             public void write(int b) throws IOException {
                 sb.append(b);
                 logger.info("\n" + sb.toString());
-                out.write(b);
+                this.out.write(b);
             }
 
             public void close() throws IOException {

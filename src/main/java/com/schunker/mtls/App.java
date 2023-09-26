@@ -121,7 +121,7 @@ public class App {
         urlConnectionWrapper.urlConnection.setConnectTimeout(10 * 1000);
         urlConnectionWrapper.setDefaultRequestParameters();
 
-        if (System.getProperty("ssl.SocketFactory.provider") == "WireLogSSLSocketFactory") {
+        if (System.getProperty("ssl.SocketFactory.provider", "default").equals("WireLogSSLSocketFactory")) {
             System.out.println("Use WireLogSSLSocketFactory");
             WireLogSSLSocketFactory socketFactory = new WireLogSSLSocketFactory(sslContext.getSocketFactory());
             urlConnectionWrapper.urlConnection.setSSLSocketFactory(socketFactory);
