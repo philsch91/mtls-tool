@@ -1,5 +1,8 @@
 package com.schunker.mtls;
 
+import java.security.*;
+import java.util.Enumeration;
+
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.Proxy;
@@ -8,6 +11,9 @@ import java.net.URLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 import java.lang.reflect.Field;
@@ -16,22 +22,41 @@ import com.schunker.java.*;
 import com.schunker.mtls.net.HttpsURLConnectionWrapper;
 
 public class App {
+
+    private static final String KEYSTORE_TYPE_DEFAULT = KeyStore.getDefaultType();
+    private static final String KEYSTORE_TYPE_JCEKS = "jceks";
+    private static final String KEYSTORE_TYPE_DKS = "dks";
+    private static final String KEYSTORE_TYPE_PKCS11 = "pkcs11";
+    private static final String KEYSTORE_TYPE_PKCS12 = "pkcs12";
+
     public static void main(String[] args) {
         App app = new App();
-        app.init();
+        try {
+            app.init();
+        } catch (Exception ex) {
+            System.err.println(ex.getMessage());
+            ex.printStackTrace();
+            System.exit(1);
+        }
     }
 
-    public void init() {
+    public void init() throws Exception {
         Menu menu = new Menu();
         menu.setTitle("mTLS Tool");
         menu.insert("Test mTLS connection");
+        menu.insert("Create Java keystore");
         menu.insert("Edit Java keystore");
+        menu.insert("Compare Java keystores");
         int inputOption = menu.show();
 
         if (inputOption == 1) {
             this.testConnection();
         } else if (inputOption == 2) {
+            this.createKeystore();
+        } else if (inputOption == 3) {
             this.editKeystore();
+        } else if (inputOption == 4) {
+            this.compareKeystores();
         }
     }
 
@@ -195,8 +220,163 @@ public class App {
         System.out.println("Response body: " + responseBody);
     }
 
-    private void editKeystore() {
-        System.out.println("Option not yet available");
+    private void createKeystore() throws IOException {
+        System.out.println("Option not completely implemented");
+
+        TextBox keystorePathTextBox = new TextBox("Keystore (Truststore) path", TextBoxInputType.TEXT);
+        String keystorePath = keystorePathTextBox.show();
+        System.out.println("Keystore path: [" + keystorePath + "]");
+
+        // TODO: check for existing file
+
+        TextBox keystorePasswordTextBox = new TextBox("Keystore password", TextBoxInputType.TEXT);
+        String keystorePassword = keystorePasswordTextBox.show();
+        System.out.println("Keystore password: [" + keystorePassword + "]");
+
+        TextBox keystoreTypeTextBox = new TextBox("Keystore (Truststore) type", TextBoxInputType.TEXT);
+        String keystoreType = keystoreTypeTextBox.show();
+        System.out.println("Keystore type: " + keystoreType);
+
+        if (keystoreType.isEmpty()) {
+            keystoreType = KEYSTORE_TYPE_DEFAULT;
+            System.out.println("Use keystore default type " + keystoreType);
+        }
+
+        KeyStore keystore;
+
+        try {
+            keystore = KeyStore.getInstance(keystoreType);
+            keystore.load(null, keystorePassword.toCharArray());
+        } catch (Exception ex) {
+            System.err.println("Exception message: " + ex.getMessage());
+            ex.printStackTrace();
+            System.exit(1);
+            return;
+        }
+
+        FileOutputStream fos = null;
+        boolean error = false;
+
+        try {
+            //File file = new File(keystorePath);
+            //keystore.store(file, keystorePassword.toCharArray());
+            fos = new FileOutputStream(keystorePath);
+            keystore.store(fos, keystorePassword.toCharArray());
+        } catch (Exception ex) {
+            System.err.println("Exception message: " + ex.getMessage());
+            ex.printStackTrace();
+            error = true;
+        } finally {
+            if (fos != null) {
+                fos.close();
+            }
+        }
+
+        if (error) {
+            System.exit(1);
+        }
+    }
+
+    private void editKeystore() throws IOException {
+        TextBox keystorePathTextBox = new TextBox("Keystore (Truststore) path", TextBoxInputType.TEXT);
+        String keystorePath = keystorePathTextBox.show();
+        System.out.println("Keystore path: [" + keystorePath + "]");
+
+        // TODO: check for existing file
+
+        TextBox keystorePasswordTextBox = new TextBox("Keystore password", TextBoxInputType.TEXT);
+        String keystorePassword = keystorePasswordTextBox.show();
+        System.out.println("Keystore password: [" + keystorePassword + "]");
+
+        TextBox keystoreTypeTextBox = new TextBox("Keystore (Truststore) type", TextBoxInputType.TEXT);
+        String keystoreType = keystoreTypeTextBox.show();
+        System.out.println("Keystore type: " + keystoreType);
+
+        if (keystoreType.isEmpty()) {
+            keystoreType = KEYSTORE_TYPE_DEFAULT;
+            System.out.println("Use keystore default type " + keystoreType);
+        }
+
+        KeyStore keystore = this.loadKeystore(keystorePath, keystorePassword, keystoreType);
+
+        Enumeration<String> aliases;
+
+        try {
+            aliases = keystore.aliases();
+        } catch (KeyStoreException kex) {
+            System.err.println("Exception message: " + kex.getMessage());
+            kex.printStackTrace();
+            System.exit(1);
+            return;
+        }
+
+        int i = 1;
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+
+            // KeyStore.Entry entry;
+            String keystoreEntryClassName = "unknown";
+
+            try {
+                if (keystore.entryInstanceOf(alias, KeyStore.PrivateKeyEntry.class)) {
+                    keystoreEntryClassName = KeyStore.PrivateKeyEntry.class.getName();
+                } else if (keystore.entryInstanceOf(alias, KeyStore.SecretKeyEntry.class)) {
+                    keystoreEntryClassName = KeyStore.SecretKeyEntry.class.getName();
+                } else if (keystore.entryInstanceOf(alias, KeyStore.TrustedCertificateEntry.class)) {
+                    keystoreEntryClassName = KeyStore.TrustedCertificateEntry.class.getName();
+                }
+            } catch (Exception ex) {
+                System.err.println("Exception message: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+
+            System.out.println("Alias " + Integer.toString(i) + ": " + alias + " (" + keystoreEntryClassName + ")");
+            i++;
+        }
+    }
+
+    private void compareKeystores() throws IOException {
+        TextBox keystorePathTextBox = new TextBox("Keystore (Truststore) path", TextBoxInputType.TEXT);
+        String keystorePath = keystorePathTextBox.show();
+        System.out.println("Keystore path: [" + keystorePath + "]");
+
+        // TODO: check for existing file
+
+        TextBox keystorePasswordTextBox = new TextBox("Keystore password", TextBoxInputType.TEXT);
+        String keystorePassword = keystorePasswordTextBox.show();
+        System.out.println("Keystore password: [" + keystorePassword + "]");
+
+        TextBox keystoreTypeTextBox = new TextBox("Keystore (Truststore) type", TextBoxInputType.TEXT);
+        String keystoreType = keystoreTypeTextBox.show();
+        System.out.println("Keystore type: " + keystoreType);
+
+        if (keystoreType.isEmpty()) {
+            keystoreType = KEYSTORE_TYPE_DEFAULT;
+            System.out.println("Use keystore default type " + keystoreType);
+        }
+
+        KeyStore keystore = this.loadKeystore(keystorePath, keystorePassword, keystoreType);
+
+        keystorePathTextBox = new TextBox("Keystore (Truststore) path 2", TextBoxInputType.TEXT);
+        keystorePath = keystorePathTextBox.show();
+        System.out.println("Keystore path: [" + keystorePath + "]");
+
+        // TODO: check for existing file
+
+        keystorePasswordTextBox = new TextBox("Keystore password 2", TextBoxInputType.TEXT);
+        keystorePassword = keystorePasswordTextBox.show();
+        System.out.println("Keystore password: [" + keystorePassword + "]");
+
+        keystoreTypeTextBox = new TextBox("Keystore (Truststore) type 2", TextBoxInputType.TEXT);
+        keystoreType = keystoreTypeTextBox.show();
+        System.out.println("Keystore type: " + keystoreType);
+
+        if (keystoreType.isEmpty()) {
+            keystoreType = KEYSTORE_TYPE_DEFAULT;
+            System.out.println("Use keystore default type " + keystoreType);
+        }
+
+        KeyStore keystore2 = this.loadKeystore(keystorePath, keystorePassword, keystoreType);
     }
 
     private boolean isConnectionConnected(URLConnection urlConnection) {
@@ -210,10 +390,44 @@ public class App {
             connectedField.setAccessible(true);
             isConnected = connectedField.getBoolean(urlConnection);
         } catch (Exception ex) {
-            ex.printStackTrace();
             System.err.println("Exception message: " + ex.getMessage());
+            ex.printStackTrace();
             //System.exit(1);
         }
         return isConnected;
+    }
+
+    private KeyStore loadKeystore(String keystorePath, String keystorePassword, String keystoreType) throws IOException {
+        KeyStore keystore = null;
+        FileInputStream fis = null;
+        boolean error = false;
+
+        try {
+            keystore = KeyStore.getInstance(keystoreType);
+            //keystore.load(new FileInputStream(keystorePath), keystorePassword.toCharArray());
+            fis = new FileInputStream(keystorePath);
+            keystore.load(fis, keystorePassword.toCharArray());
+        } catch (KeyStoreException kex) {
+            System.err.println("KeyStore type is not supported or wrong");
+            System.err.println("Exception message: " + kex.getMessage());
+            kex.printStackTrace();
+            error = true;
+        } catch (Exception ex) {
+            // TODO: UnrecoverableKeyException ukex
+            // System.err.println("KeyStore password wrong");
+            System.err.println("Exception message: " + ex.getMessage());
+            ex.printStackTrace();
+            error = true;
+        } finally {
+            if (fis != null) {
+                fis.close();
+            }
+        }
+
+        if (error) {
+            System.exit(1);
+        }
+
+        return keystore;
     }
 }

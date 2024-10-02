@@ -19,6 +19,7 @@
     <java.version>11</java.version>
     <!--<plugin.prettier.goal>write</plugin.prettier.goal>-->
     <plugin.prettier.goal>check</plugin.prettier.goal>
+    <JavaConsoleKit.version>1.0-SNAPSHOT</JavaConsoleKit.version>
   </properties>
 
   <repositories>
@@ -38,7 +39,7 @@
     <dependency>
       <groupId>com.schunker.java</groupId>
       <artifactId>JavaConsoleKit</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>${JavaConsoleKit.version}</version>
     </dependency>
   </dependencies>
 
