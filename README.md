@@ -1,4 +1,4 @@
-# mtls-tool
+# tls-tool
 
 ## Install Dependencies
 
@@ -51,10 +51,10 @@ mvn test
 ## Execute
 ```
 # Windows
-java -cp "C:\\dev\\philipp-schunker\\mtls-tool\\target\\classes;C:\\dev\\philipp-schunker\\JavaConsoleKit\\target\\classes" com.schunker.mtls.App
+java -cp "C:\\dev\\philipp-schunker\\tls-tool\\target\\classes;C:\\dev\\philipp-schunker\\JavaConsoleKit\\target\\classes" com.schunker.tls.App
 # Linux
-java -cp "/mnt/c/dev/philipp-schunker/mtls-tool/target/classes:/mnt/c/dev/philipp-schunker/JavaConsoleKit/target/classes" com.schunker.mtls.App
-java [-Djava.security.keystore.type=<pkcs12/jks> -Djavax.net.ssl.keyStoreType=<pkcs12/jks> -Djavax.net.ssl.trustStoreType=<pkcs12/jks> -Dhttps.proxyHost=proxy.hostname.com -Dhttps.proxyPort=8080 -Dhttp.nonProxyHosts="*.subd.tld.com|*.tld.com" -Djava.util.logging.config.file=src/main/resources/logging.properties -Djavax.net.debug=all -Dssl.SocketFactory.provider=WireLogSSLSocketFactory] -jar target/mtls-tool-1.0-SNAPSHOT-shaded.jar
+java -cp "/mnt/c/dev/philipp-schunker/tls-tool/target/classes:/mnt/c/dev/philipp-schunker/JavaConsoleKit/target/classes" com.schunker.tls.App
+java [-Djava.security.keystore.type=<pkcs12/jks> -Djavax.net.ssl.keyStoreType=<pkcs12/jks> -Djavax.net.ssl.trustStoreType=<pkcs12/jks> -Dhttps.proxyHost=proxy.hostname.com -Dhttps.proxyPort=8080 -Dhttp.nonProxyHosts="*.subd.tld.com|*.tld.com" -Djava.util.logging.config.file=src/main/resources/logging.properties -Djavax.net.debug=all -Dssl.SocketFactory.provider=WireLogSSLSocketFactory] -jar target/tls-tool-1.0-SNAPSHOT-shaded.jar
 ```
 
 ## Package

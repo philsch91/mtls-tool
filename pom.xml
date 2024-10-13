@@ -4,11 +4,11 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.schunker.mtls</groupId>
-  <artifactId>mtls-tool</artifactId>
+  <groupId>com.schunker.tls</groupId>
+  <artifactId>tls-tool</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>mtls-tool</name>
+  <name>tls-tool</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
 
@@ -70,7 +70,7 @@
           <configuration>
             <archive>
               <manifest>
-                <mainClass>com.schunker.mtls.App</mainClass>
+                <mainClass>com.schunker.tls.App</mainClass>
               </manifest>
             </archive>
           </configuration>
@@ -140,7 +140,7 @@
           <!--
           <transformers>
             <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-              <mainClass>com.schunker.mtls.App</mainClass>
+              <mainClass>com.schunker.tlsApp</mainClass>
             </transformer>
           </transformers>
           -->

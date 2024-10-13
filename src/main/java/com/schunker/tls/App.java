@@ -1,4 +1,4 @@
-package com.schunker.mtls;
+package com.schunker.tls;
 
 import java.security.*;
 import java.util.Enumeration;
@@ -11,7 +11,6 @@ import java.net.URLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -19,7 +18,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 
 import com.schunker.java.*;
-import com.schunker.mtls.net.HttpsURLConnectionWrapper;
+import com.schunker.tls.net.HttpsURLConnectionWrapper;
 
 public class App {
 
@@ -42,8 +41,8 @@ public class App {
 
     public void init() throws Exception {
         Menu menu = new Menu();
-        menu.setTitle("mTLS Tool");
-        menu.insert("Test mTLS connection");
+        menu.setTitle("TLS Tool");
+        menu.insert("Test TLS (mTLS) connection");
         menu.insert("Create Java keystore");
         menu.insert("Edit Java keystore");
         menu.insert("Compare Java keystores");
@@ -164,7 +163,7 @@ public class App {
         try {
             urlConnectionWrapper.urlConnection.connect();
         } catch (SSLHandshakeException sslex) {
-            System.err.println("Exception for connecting via mTLS");
+            System.err.println("Exception for connecting via TLS");
             System.err.println(sslex.getMessage());
             sslex.printStackTrace();
             System.exit(4);

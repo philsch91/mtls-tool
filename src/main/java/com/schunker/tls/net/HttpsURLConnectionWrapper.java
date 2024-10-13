@@ -1,4 +1,4 @@
-package com.schunker.mtls.net;
+package com.schunker.tls.net;
 
 import java.net.URL;
 import java.net.Proxy;
